@@ -20,4 +20,3 @@ python3 main.py
 
 ### Tests
 1. It was tested using 2 computer (Ubuntu 18.04 and Raspbian) in my home LAN. Tests were succesful. 
-2. I have tested my code with **Emre Girgin** using Hamachi.
