@@ -10,7 +10,7 @@
 
 ### OS
 This program works on Linux. (It was tested on Ubuntu 18.04 and Raspbian)
-I assumed that ```hostname -I``` will return the local IPv4 address, otherwise the program won't work.
+We assumed that ```hostname -I``` will return the local IPv4 address, otherwise the program won't work.
 ```
 > hostname -I
 192.168.1.111 ...
@@ -23,7 +23,7 @@ python3 main.py
 ```
 
 ### Tests
-It was tested with 2 computer (Ubuntu 18.04 and Raspbian) in a home LAN. I could succesfully transfer a txt file, a jpg file, a png file, and a pdf file whose size is approx. 4 MB.
+It was tested with 2 computer (Ubuntu 18.04 and Raspbian) in a home LAN. We could succesfully transfer a txt file, a jpg file, a png file, and a pdf file whose size is approx. 4 MB.
 
 
 ### Knonw Issues
