@@ -102,7 +102,7 @@ class Messenger(object):
         is_peer_offline = False
         while True:
             mes_list = self._read_messages(peer_ip)
-            os.system("clear")
+            os.system('cls' if os.name == 'nt' else 'clear')
             print("Chat Room ({} at {} and {} at {}) - Refreshed every 3 seconds\n"\
                             .format(self.my_name, self.my_ip, peer_name, peer_ip))
             
@@ -144,7 +144,7 @@ class Messenger(object):
             elif key == "f" and not is_peer_offline:
                 file_path = input("Enter the relative path of the file\n").strip()
                 file_path = os.path.abspath(file_path)
-                if not os.path.exists(file_path):
+                if not os.path.isfile(file_path):
                     print("File couldn't be found!")
                     time.sleep(2)
                     continue

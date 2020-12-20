@@ -1,13 +1,12 @@
-import os, subprocess
+import os, subprocess, socket
 
 from chatAPI import Messenger
 from inputimeout import inputimeout, TimeoutOccurred
 
-
 COMM_PORT = 12345
 
 def display_lobby(messenger, local_ip, name):
-    os.system("clear")
+    os.system('cls' if os.name == 'nt' else 'clear')
     print("ChatApp487\n")
     print("My IP:", local_ip)
     print("My Name:", name, '\n')
@@ -19,6 +18,17 @@ def display_lobby(messenger, local_ip, name):
                                         ip_addr))
     print()
 
+def get_my_ip():
+    #return '127.0.0.1'
+    if os.name == 'posix':
+        # Get the local ip using hostname (works in Ubuntu)
+        local_ip = subprocess.run(["hostname","-I"], stdout=subprocess.PIPE)
+        local_ip = local_ip.stdout.decode().split(" ")[0] # HAMACHI
+        return local_ip
+    else:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        return s.getsockname()[0]
 
 if __name__ == "__main__":
     # We need try-except to kill the listener if something goes wrong.
@@ -27,12 +37,10 @@ if __name__ == "__main__":
         os.makedirs(".db", exist_ok=True)
         with open(".db/.chat_db", "w+") as _:
             pass
-        # Get the local ip using hostname
-        local_ip = subprocess.run(["hostname","-I"], stdout=subprocess.PIPE)
-        local_ip = local_ip.stdout.decode().split(" ")[0] # HAMACHI
+        local_ip = get_my_ip()
 
         # Start UI
-        os.system("clear")
+        os.system('cls' if os.name == 'nt' else 'clear')
         print("Welcome to ChatApp487")
         name = input("Your Name?\n")
 
