@@ -1,16 +1,17 @@
 ### Group Members
-1. Burak Yılzdızöz
-2. Alperen Bağ
+1. Alperen Bağ
+2. Burak Yıldızöz
 
 ### Dependencies
-* Tested OS: Ubuntu 18.04, Raspbian
+* Tested OS: Ubuntu 18.04, Raspbian, Windows 10
 * Python3 
 * Python dependencies can be installed using requirements.txt
-    2. inputimeout (pip)
+    1. inputimeout (pip)
 
 ### OS
-This program works on Linux. (It was tested on Ubuntu 18.04 and Raspbian)
-We assumed that ```hostname -I``` will return the local IPv4 address, otherwise the program won't work.
+This program works on both Linux and Windows. (It was tested on Ubuntu 18.04, Raspbian and Windows 10)
+
+In Linux, ```hostname -I``` will return the IP address of Hamachi, if available. But the IP should be written in the code in Windows for Hamachi.
 ```
 > hostname -I
 192.168.1.111 ...
@@ -25,6 +26,9 @@ python3 main.py
 ### Tests
 It was tested with 2 computer (Ubuntu 18.04 and Raspbian) in a home LAN. We could succesfully transfer a txt file, a jpg file, a png file, and a pdf file whose size is approx. 4 MB.
 
+Another test performed over Hamachi between Raspbian and Windows 10. Text and image files are sent successfully.
 
 ### Knonw Issues
 1. We didn't check maximum number of threads can the computer handle in the program. Practically, we didn't encountered any problem during the testing phase. However, the program might crash on a computers with a low computation capability.
+2. Since the screen is cleared every 3 seconds, it is possible that it can be cleared after you type your input and before pressing ENTER. Just try again in that case :)
+3. While sending file from Windows to Linux, file name contains the absolute path due to seperator difference. This is planned to be fixed.

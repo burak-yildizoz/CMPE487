@@ -4,6 +4,17 @@ from inputimeout import inputimeout, TimeoutOccurred
 
 from fileSender import FileSender, PacketLossError
 
+def get_my_ip():
+    #return '127.0.0.1'
+    if os.name == 'posix':
+        # Get the local ip using hostname (works in Ubuntu)
+        local_ip = subprocess.run(["hostname","-I"], stdout=subprocess.PIPE)
+        local_ip = local_ip.stdout.decode().split(" ")[0] # HAMACHI
+        return local_ip
+    else:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        return s.getsockname()[0]
 
 def _decode_message(data):
     """ Converts given data to dict. If it cannot or data 
@@ -253,6 +264,7 @@ class Messenger(object):
             downloaded_file_str += self.current_download[1][i]
         self.current_download = [None, {}, ""]
         downloaded_file = base64.b64decode(downloaded_file_str.encode("UTF-8"))
+        os.makedirs('Downloads', exist_ok=True)
         f = open('./Downloads/'+filename, 'wb')
         f.write(downloaded_file)
         f.close()
@@ -380,7 +392,12 @@ class Messenger(object):
 
         elif protocol == "UDP":
             if ip_address == "broadcast":
-                ip_address = '<broadcast>'
+                myip = get_my_ip()
+                domain = myip[0:myip.find('.')]
+                if domain == '192':
+                    ip_address = '<broadcast>'
+                else:
+                    ip_address = domain + '.255.255.255'
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST,1)
                 s.sendto(str.encode(message, "utf-8"), (ip_address, self.port))
