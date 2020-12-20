@@ -30,6 +30,6 @@ python3 main.py
 
 - Finally, sending messages and files succeeded between two computers with Windows 10.
 
-### Knonw Issues
+### Known Issues
 1. We didn't check maximum number of threads can the computer handle in the program. Practically, we didn't encountered any problem during the testing phase. However, the program might crash on a computers with a low computation capability.
 2. Since the screen is cleared every 3 seconds, it is possible that it can be cleared after you type your input and before pressing ENTER. Just try again in that case :)
