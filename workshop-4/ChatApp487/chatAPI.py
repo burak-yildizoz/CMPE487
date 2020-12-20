@@ -153,7 +153,7 @@ class Messenger(object):
                     is_peer_offline = True
             
             elif key == "f" and not is_peer_offline:
-                file_path = input("Enter the relative path of the file\n").strip()
+                file_path = input("Enter the path of the file\n").strip()
                 file_path = os.path.abspath(file_path)
                 if not os.path.isfile(file_path):
                     print("File couldn't be found!")
@@ -161,7 +161,7 @@ class Messenger(object):
                     continue
                 self.file_sender = FileSender(self.my_ip, self.my_name, self.port, self)
                 chunks = self.file_sender.file_to_chunks(file_path)
-                allow_packet = self._generate_message("ALLOW", file_path.split("/")[-1])
+                allow_packet = self._generate_message("ALLOW", file_path.split(os.sep)[-1])
                 self._send_message("TCP", peer_ip, json.dumps(allow_packet))
                 # wait for permission
                 print("Waiting for permission from the peer for the file transfer...")
