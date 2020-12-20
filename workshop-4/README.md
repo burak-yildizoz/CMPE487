@@ -23,7 +23,7 @@ python3 main.py
 ```
 
 ### Tests
-It was tested using 2 computer (Ubuntu 18.04 and Raspbian) in my home LAN. I could succesfully transfer a txt file, a jpg file, a png file, and a pdf file whose size is approx. 4 MB.
+It was tested with 2 computer (Ubuntu 18.04 and Raspbian) in a home LAN. I could succesfully transfer a txt file, a jpg file, a png file, and a pdf file whose size is approx. 4 MB.
 
 
 ### Knonw Issues
