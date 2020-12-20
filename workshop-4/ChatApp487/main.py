@@ -1,4 +1,4 @@
-import os, subprocess, socket
+import os, socket
 
 from chatAPI import Messenger, get_my_ip
 from inputimeout import inputimeout, TimeoutOccurred
