@@ -1,11 +1,19 @@
 from copy import deepcopy
+import socket
 
 class User:
-    def __init__(self, ip_address, alias):
-        assert type(ip_address) is str
+    def get_my_ip():
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        return s.getsockname()[0]
+    def __init__(self, alias):
         assert type(alias) is str
-        self._ip = ip_address
+        self._ip = User.get_my_ip()
         self._alias =  alias
+    def __eq__(self, other):
+        return self.get_ip() == other.get_ip()
+        # use the following for test purposes
+        return self.fullname() == other.fullname()
     def get_ip(self):
         return deepcopy(self._ip)
     def get_alias(self):
@@ -39,7 +47,9 @@ class Answer:
         return True
 
     def __eq__(self, other):
-        return self._vote == other.get_vote_status()
+        return (self._vote == other.get_vote_status()
+                and self._author == other.get_author()
+                and self._text == other.get_text())
 
     def __lt__(self, other):
         return self._vote < other.get_vote_status()
@@ -95,8 +105,9 @@ class Question(Answer):
                 answer.print()
 
 if __name__ == '__main__':
-    u1 = User('127.0.0.1', 'me')
-    u2 = User('192.168.1.1', 'someone else')
+    print('Change User.__eq__ method first!')
+    u1 = User('me')
+    u2 = User('someone else')
     q1 = Question(u1, 'My Title',
                   ('My question text\n'
                    'It is multiline'))
