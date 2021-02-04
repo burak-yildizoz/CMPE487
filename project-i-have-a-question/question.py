@@ -17,7 +17,7 @@ class User:
     def get_ip(self):
         return deepcopy(self._ip)
     def get_alias(self):
-        return deepcopy(self_alias)
+        return deepcopy(self._alias)
     def fullname(self):
         return '%s (%s)' % (self._alias, self._ip)
 
