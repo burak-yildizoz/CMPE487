@@ -60,9 +60,8 @@ class Application(tk.Tk):
 
     def add_question(self, question):
         if question in self._questions:
-            return False
+            raise Exception('The same question exists')
         self._questions.insert(0, question)
-        return True
 
     def get_questions(self):
         return sorted(self._questions, reverse=True)
@@ -86,7 +85,7 @@ class CustomPage(tk.Frame):
 class HomePage(CustomPage):
     def __init__(self, root, app):
         super().__init__(root, app)
-        self.lbl_welcome = tk.Label(self, text='Welcome %s' % (
+        self.lbl_welcome = tk.Label(self, text='Welcome %s'%(
             self.app.user.get_alias()))
         self.lbl_welcome.pack(side=tk.TOP, fill=tk.X, pady=10)
         self.btn_ask = tk.Button(self, text='Ask A Question',
@@ -177,7 +176,7 @@ class AnswerPage(CustomPage):
 
 if __name__ == '__main__':
     user = User('me')
-    questions = [Question(user, 'Title %d' % i, 'text %d' % i)
+    questions = [Question(user, 'Title %d'%i, 'text %d'%i)
                  for i in range(100, 0, -1)]
     app = Application(user=user, questions=questions)
     app.mainloop()
