@@ -32,40 +32,46 @@ class Answer:
         if not text or text.isspace():
             raise Exception('The answer is empty')
         self._text = text
-        self._vote = 0
-        self._author = author
-        self._voters = [author]
+        self.author = author
+        self._upvoters = []
+        self._downvoters = []
 
     def eligible_vote(self, voter):
         assert type(voter) is User
-        if voter in self._voters:
-            if voter == self._author:
-                raise Exception('You cannot vote your own answer')
-            raise Exception('%s already voted this answer'%voter.fullname())
+        if voter == self.author:
+            raise Exception('You cannot vote your own %s'%type(self).__name__)
+        if voter in self._upvoters:
+            raise Exception('%s already upvoted this %s'%(
+                voter.fullname(), type(self).__name__))
+        if voter in self._downvoters:
+            raise Exception('%s already downvoted this %s'%(
+                voter.fullname(), type(self).__name__))
 
     def upvote(self, voter):
         self.eligible_vote(voter)
-        self._voters.append(voter)
-        self._vote += 1
+        self._upvoters.append(voter)
 
     def downvote(self, voter):
         self.eligible_vote(voter)
-        self._voters.append(voter)
-        self._vote -= 1
-        return True
+        self._downvoters.append(voter)
 
     def __eq__(self, other):
-        return (self._author == other.get_author()
+        return (self.author == other.author
                 and self._text == other.get_text())
 
     def __lt__(self, other):
-        return self._vote < other.get_vote_status()
+        return self.get_vote_status() < other.get_vote_status()
 
     def get_vote_status(self):
-        return deepcopy(self._vote)
+        return len(self._upvoters) - len(self._downvoters)
 
-    def get_author(self):
-        return deepcopy(self._author)
+    def get_user_reaction(self, user):
+        assert type(user) is User
+        if user in self._upvoters:
+            return 1
+        if user in self._downvoters:
+            return -1
+        return 0
 
     def get_text(self):
         return deepcopy(self._text)
@@ -74,7 +80,7 @@ class Answer:
         print('Answer (%d votes): \n%s'%(
             self.get_vote_status(),
             self.get_text()))
-        print('answered by %s\n'%self.get_author().fullname())
+        print('answered by %s\n'%self.author.fullname())
 
 
 
@@ -91,21 +97,28 @@ class Question(Answer):
         self._title = title
         self._answers = []
 
-    def eligible_vote(self, voter):
-        assert type(voter) is User
-        if voter in self._voters:
-            if voter == self._author:
-                raise Exception('You cannot vote your own question')
-            raise Exception('%s already voted this question'%(voter.fullname()))
-
     def answer(self, answer):
         assert type(answer) is Answer
         if answer in self._answers:
             raise Exception('The same answer exists')
         self._answers.append(answer)
 
+    def has_accepted_answer(self):
+        for answer in self._answers:
+            if answer.get_vote_status() > 0:
+                return True
+        return False
+
     def __eq__(self, other):
         return self._title == other.get_title()
+
+    def __lt__(self, other):
+        self_answered = self.has_accepted_answer()
+        other_answered = other.has_accepted_answer()
+        if self_answered == other_answered:
+            return self.get_vote_status() < other.get_vote_status()
+        else:
+            return self_answered
 
     def get_title(self):
         return deepcopy(self._title)
@@ -125,7 +138,7 @@ class Question(Answer):
         print('Question (%d votes): %s\n%s'%(
             self.get_vote_status(),
             *self.get_problem()))
-        print('asked by %s'%self.get_author().fullname())
+        print('asked by %s'%self.author.fullname())
         print('Answers: %d total\n'%self.answers_size())
         if print_answers:
             for i, answer in enumerate(self.get_answers(), start=1):

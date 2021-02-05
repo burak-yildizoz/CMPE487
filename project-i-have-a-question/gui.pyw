@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from tkinter.simpledialog import askstring
+from tkinter import ttk
 from copy import deepcopy
 from question import User, Answer, Question
 
@@ -40,6 +41,50 @@ class Notification:
 
 
 
+# https://blog.tecladocode.com/tkinter-scrollable-frames/
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        canvas = tk.Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient='vertical', command=canvas.yview)
+        self.scrollable_frame = ttk.Frame(canvas)
+        self.scrollable_frame.bind('<Configure>', lambda e: canvas.configure(
+            scrollregion=canvas.bbox('all')))
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+
+
+class TextFrame(tk.Frame):
+    def __init__(self, master, answer, user):
+        assert type(user) is User
+        super().__init__(master)
+        self.answer = answer
+        self.user = user
+        # text and author labels
+        self.lbl_text = tk.Label(master=self, text=answer.get_text())
+        self.lbl_user = tk.Label(master=self, text=answer.author.get_alias())
+        # voting scheme
+        user_reaction = answer.get_user_reaction(self.user)
+        self.w = 30
+        self.pady = 5
+        # upvote
+        self.cnv_up = tk.Canvas(master=self, height=self.w/2, width=self.w)
+        up_fill = 'orange' if user_reaction == 1 else 'gray'
+        self.cnv_up.create_polygon(0, 0, self.w, 0, self.w/2, self.w/2,
+                                   fill=up_fill)
+        self.cnv_up.bind('<Button-1>', self.fn_upvote)
+        # vote count
+        self.lbl_count = tk.Label(master=self, text=answer.get_vote_status())
+        raise 'to be implemented'
+
+    def fn_upvote(event):
+        raise 'to be implemented'
+
+
+
 class Application(tk.Tk):
     def __init__(self, root=None, user=None, questions=[]):
         assert (type(questions) is list
@@ -69,7 +114,7 @@ class Application(tk.Tk):
         self.frm_home = tk.Frame(master=self)
         self.btn_home = tk.Button(master=self.frm_home,
                                   text='Return to home page',
-                                  command=lambda:self.show_frame('HomePage'))
+                                  command=lambda: self.show_frame('HomePage'))
         self.btn_home.pack(fill=tk.BOTH)
         self.frm_home.pack(side=tk.BOTTOM, fill=tk.X)
         # stack pages on container
@@ -149,12 +194,12 @@ class HomePage(CustomPage):
             self.app.user.get_alias()))
         self.btn_ask = tk.Button(
             self, text='Ask A Question',
-            command=lambda:self.app.show_frame('AskPage'))
+            command=lambda: self.app.show_frame('AskPage'))
         self.btn_answer = tk.Button(
             self, text='Answer Questions',
-            command=lambda:self.app.show_frame('AnswerPage'))
+            command=lambda: self.app.show_frame('AnswerPage'))
         self.btn_notify = tk.Button(
-            self, command=lambda:app.show_frame('NotificationsPage'))
+            self, command=lambda: app.show_frame('NotificationsPage'))
         self.lbl_welcome.grid(row=0, sticky='EW', pady=10)
         self.btn_ask.grid(row=1)
         self.btn_notify.grid(row=3)
@@ -231,13 +276,10 @@ class AnswerPage(CustomPage):
         self.qlist = tk.Listbox(master=self, width=48,
                                 yscrollcommand=self.scrb.set)
         self.scrb.config(command=self.qlist.yview)
-        # another page at the right to inspect the selected question
-        self.frame = tk.Frame(master=self)
         self.qlist.bind('<<ListboxSelect>>', self.fn_select)
-        # layout of the page
         self.qlist.pack(side=tk.LEFT, fill=tk.BOTH)
         self.scrb.pack(side=tk.LEFT, fill=tk.Y)
-        self.frame.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.selected_question = None
 
     def update(self):
         self.questions = self.app.get_questions()
@@ -245,6 +287,7 @@ class AnswerPage(CustomPage):
         self.qlist.delete(0, tk.END)
         for title in self.titles:
             self.qlist.insert(tk.END, title)
+        self.show()
 
     def fn_select(self, event):
         sel = self.qlist.curselection()
@@ -252,9 +295,33 @@ class AnswerPage(CustomPage):
         if not sel:
             return
         idx = sel[0]
-        question = self.questions[idx]
-        question.print()
+        self.selected_question = self.questions[idx]
+        self.show()
 
+    def show(self):
+        # another page at the right to inspect the selected question
+        self.frame = tk.Frame(master=self)
+        self.frame.pack(side=tk.RIGHT, fill=tk.BOTH)
+        if self.selected_question is None:
+            return
+        try:
+            idx = self.questions.index(self.selected_question)
+        except ValueError:
+            self.app.new_notification(Notification(
+                'Could not find previously selected question: %s'%(
+                    self.selected_question.get_title()), 'error'))
+            return
+        self.lbl_title = tk.Label(master=self.frame,
+                                  text=self.selected_question.get_title())
+        self.tfrm_question = TextFrame(master=self.frame,
+                                       answer=self.selected_question,
+                                       user=self.app.user)
+        self.lbl_answer = tk.Label(master=self.frame, text='Answers (%d)'%(
+            self.selected_question.answers_size()))
+        self.sfrm_answer = ScrollableFrame(master=self.frame)
+        for answer in self.selected_question.get_answers():
+            TextFrame(master=self.sfrm_answer, answer=answer)
+        raise 'to be implemented'
 
 
 class NotificationsPage(CustomPage):
