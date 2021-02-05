@@ -7,13 +7,15 @@ from question import User, Answer, Question
 
 class Notification:
     def error_levels():
-        return ['debug', 'info', 'warn', 'success', 'error', 'request']
+        return ['debug', 'info', 'warn', 'success',
+                'personal', 'error', 'request']
 
     def error_colors():
-        return ['light blue', 'white', 'orange', 'green', 'red', 'purple']
+        return ['light blue', 'white', 'orange', 'green',
+                'gold', 'red', 'purple']
 
     verbosity_level = 1    # info
-    important_level = 4    # error
+    important_level = 4    # personal
 
     def __init__(self, msg, level):
         levels = Notification.error_levels()
@@ -113,8 +115,8 @@ class Application(tk.Tk):
     def show_frame(self, page_name):
         self.current_page = page_name
         frame = self.frames[page_name]
-        frame.update()
         frame.tkraise()
+        frame.update()
 
     def add_question(self, question):
         if question in self._questions:
@@ -201,12 +203,22 @@ class AskPage(CustomPage):
 
     def fn_submit(self):
         title = self.ent_title.get()
-        self.ent_title.delete(0, tk.END)
         text = self.stxt_question.get('1.0', tk.END)
+        try:
+            question = Question(self.app.user, title, text)
+        except Exception as e:
+            self.app.new_notification(Notification(str(e), 'warn'))
+            return
+        try:
+            self.app.add_question(question)
+        except Exception as e:
+            self.app.new_notification(Notification(
+                '%s: %s'%(e, title), 'error'))
+            return
+        self.app.new_notification(Notification(
+                'You asked a new question: %s'%title, 'success'))
+        self.ent_title.delete(0, tk.END)
         self.stxt_question.delete('1.0', tk.END)
-        question = Question(self.app.user, title, text)
-        if self.app.add_question(question):
-            question.print()
         self.app.show_frame('HomePage')
 
 
@@ -235,7 +247,11 @@ class AnswerPage(CustomPage):
             self.qlist.insert(tk.END, title)
 
     def fn_select(self, event):
-        idx = self.qlist.curselection()[0]
+        sel = self.qlist.curselection()
+        # in case () is returned, bug of ListboxSelect callback
+        if not sel:
+            return
+        idx = sel[0]
         question = self.questions[idx]
         question.print()
 
@@ -255,19 +271,21 @@ class NotificationsPage(CustomPage):
         self.update()
 
     def update(self):
-        self.colors = []
-        self.unreads = []
+        self.colors = [n.color() for n in self.app.notifications]
+        self.unreads = [n.unread() for n in self.app.notifications]
         self.nlist.delete(0, tk.END)
         for i, notification in enumerate(self.app.notifications):
-            self.colors.append(notification.color())
-            self.unreads.append(notification.unread())
             self.nlist.insert(i, notification.msg)
             self.nlist.itemconfig(i, bg=self.colors[i])
             if self.unreads[i]:
                 self.nlist.itemconfig(i, fg='blue')
 
     def fn_select(self, event):
-        idx = self.nlist.curselection()[0]
+        sel = self.nlist.curselection()
+        # in case () is returned, bug of ListboxSelect callback
+        if not sel:
+            return
+        idx = sel[0]
         if self.unreads[idx]:
             self.app.notifications[idx].read = True
             self.update()
