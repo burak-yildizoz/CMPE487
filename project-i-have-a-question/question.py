@@ -21,6 +21,8 @@ class User:
     def fullname(self):
         return '%s (%s)' % (self._alias, self._ip)
 
+
+
 class Answer:
     def __init__(self, author, text):
         assert type(author) is User
@@ -69,6 +71,8 @@ class Answer:
             self.get_text()))
         print('answered by %s\n' % self.get_author().fullname())
 
+
+
 class Question(Answer):
     def __init__(self, author, title, text):
         assert type(author) is User
@@ -80,11 +84,22 @@ class Question(Answer):
 
     def answer(self, answer):
         assert type(answer) is Answer
+        if answer in self._answers:
+            return False
         self._answers.append(answer)
+        return True
+
+    def __eq__(self, other):
+        return (self._vote == other.get_vote_status()
+                and self._author == other.get_author()
+                and self._title == other.get_title())
+
+    def get_title(self):
+        return deepcopy(self._title)
 
     def get_problem(self):
-        title = deepcopy(self._title)
-        text = deepcopy(self._text)
+        title = self.get_title()
+        text = self.get_text()
         return (title, text)
 
     def get_answers(self):
@@ -104,6 +119,8 @@ class Question(Answer):
                 print('[%d/%d]' % (i, self.answers_size()), end=' ')
                 answer.print()
 
+
+
 if __name__ == '__main__':
     print('Change User.__eq__ method first!')
     u1 = User('me')
@@ -113,9 +130,9 @@ if __name__ == '__main__':
                    'It is multiline'))
     assert q1.upvote(u2)
     a1 = Answer(u1, 'This is my answer')
-    q1.answer(a1)
+    assert q1.answer(a1)
     a2 = Answer(u2, ('This is another answer\n'
                      'This answer is multiline'))
-    q1.answer(a2)
+    assert q1.answer(a2)
     assert a2.upvote(u1)
     q1.print()
