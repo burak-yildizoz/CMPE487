@@ -87,9 +87,12 @@ class TextFrame(tk.Frame):
 
 
 class Application(tk.Tk):
-    def __init__(self, root=None, user=None, questions=[]):
-        assert (type(questions) is list
-                and all(type(q) is Question for q in questions))
+    def __init__(self, comm_module, root=None, user=None):
+        self.comm_module = comm_module
+        questions = comm_module.database.questions
+
+        assert (type(questions) is dict
+                and all(type(questions[title]) is Question for title in questions))
         super().__init__(root)
         if root is None:
             self.title('I Have A Question')
@@ -166,12 +169,14 @@ class Application(tk.Tk):
         frame.update()
 
     def add_question(self, question):
-        if question in self._questions:
+        title, content = question.get_problem()
+        if title in self._questions:
             raise Exception('The same question exists')
-        self._questions.insert(0, question)
+        self.comm_module.add_question(title, content)
 
     def get_questions(self):
-        return sorted(self._questions, reverse=True)
+        questions = sorted(list(self._questions.values()), reverse=True)
+        return questions
 
     def questions_size(self):
         return len(self._questions)
@@ -365,9 +370,9 @@ if __name__ == '__main__':
     user = User('me')
     comm_module = CommunicationModule("me", 12345)
     comm_module.init()
-    questions = [Question(user, 'Title %d'%i, 'text %d'%i)
-                 for i in range(100, 0, -1)]
-    app = Application(user=user, questions=questions)
+    #questions = [Question(user, 'Title %d'%i, 'text %d'%i)
+    #             for i in range(100, 0, -1)]
+    app = Application(comm_module=comm_module, user=user)
     app.mainloop()
     comm_module.kill()
     print("Exiting app...")

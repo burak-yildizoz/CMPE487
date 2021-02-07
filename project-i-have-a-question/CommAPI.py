@@ -1,37 +1,7 @@
 import os, time, json, copy, socket, select, threading, sys, base64
 
-from utils import get_my_ip
+from utils import *
 from database import Database
-
-def _decode_message(data):
-    """ Converts given data to dict. If it cannot or data 
-    is not in correct protocol, returns False
-    
-    Args:
-        data (str): Received message from another user
-    """
-    try:
-        mes = json.loads(data.strip())
-        if _validate_packet(mes):
-            return mes
-        assert False, "DEBUG"
-        return False
-    except json.decoder.JSONDecodeError:
-        assert False, "DEBUG"
-        return False
-
-
-def _validate_packet(packet):
-    """ Validates the given packet
-    Returns False if it is not correct.
-    """
-    packet_keys = set(packet.keys())
-    
-    is_question = (packet_keys == {"TYPE", "ACTOR", "TITLE", "CONTENT"}) and (packet["TYPE"] == "QUESTION")
-    is_answer = (packet_keys == {"TYPE", "ACTOR", "QUESTION_TITLE", "CONTENT"}) and (packet["TYPE"] == "ANSWER")
-    is_vote = (packet_keys == {"TYPE", "ACTOR", "QUESTION_TITLE", "VOTE"}) and (packet["TYPE"] == "VOTE")
-    is_quit = (packet_keys == {"TYPE", "ACTOR"}) and (packet["TYPE"] == "QUIT")
-    return is_question or is_answer or is_vote or is_quit
 
 
 class CommunicationModule(object):
@@ -126,7 +96,7 @@ class CommunicationModule(object):
             while True:
                 result = select.select([s], [], [])
                 data = result[0][0].recv(1500).decode("utf-8")
-                mes = _decode_message(data)
+                mes = decode_message(data)
                 if not mes:
                     continue
                 elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
@@ -152,7 +122,7 @@ class CommunicationModule(object):
                         if not data:
                             break
                         
-                        mes = _decode_message(data.decode("utf-8"))
+                        mes = decode_message(data.decode("utf-8"))
                         if not mes:
                             continue    
                         elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
@@ -193,3 +163,24 @@ class CommunicationModule(object):
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST,1)
                 s.sendto(str.encode(message_str, "utf-8"), (ip_address, self.port))
 
+
+    def add_question(self, title, content):
+        payload = {"TITLE":title, "CONTENT":content}
+        packet_str = self._generate_message("QUESTION", payload)
+        for _ in range(3):
+            self._send_message("UDP", "broadcast", packet_str)
+
+
+    def add_answer(self, question_title, content):
+        payload = {"QUESTION_TITLE":question_title, "CONTENT":content}
+        packet_str = self._generate_message("ANSWER", payload)
+        for _ in range(3):
+            self._send_message("UDP", "broadcast", packet_str)
+
+    
+    def add_vote(self, question_title, vote):
+        assert vote == "+" or vote == "-"
+        payload = {"QUESTION_TITLE":question_title, "VOTE":vote}
+        packet_str = self._generate_message("VOTE", payload)
+        for _ in range(3):
+            self._send_message("UDP", "broadcast", packet_str)
