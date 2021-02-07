@@ -20,6 +20,7 @@ class CommunicationModule(object):
         self.port = comm_port
         self.database = Database()
         self.database_lock = threading.Lock() # will be used by tcp and udp listeners 
+        self.is_requesting = False
         
         self.udp_server_thread = None
         self.tcp_server_thread = None
@@ -34,9 +35,8 @@ class CommunicationModule(object):
         self.tcp_server_thread = threading.Thread(target=self._start_tcp_listener, args=())
         self.tcp_server_thread.start()
 
-        time.sleep(2)
-        # TODO Send the hello packet and get all questions from peers
-        # init_database()
+        time.sleep(2) # wait for listeners to get ready
+        self.init_database_after_login()
 
     
     def kill(self):
@@ -80,8 +80,21 @@ class CommunicationModule(object):
         elif m_type == "QUIT":
             message = {"TYPE":m_type, "ACTOR":self.my_ip}
         
+        elif m_type == "REQUEST": # packet for requesting all database
+            message = {"TYPE":m_type, "ACTOR":self.my_ip}
+
+        elif m_type == "REQUEST_RESPONSE": # all available clients will send a response
+            message = {"TYPE":m_type, "ACTOR":self.my_ip}
+        
+        elif m_type == "REQUEST_DATA": # packet for requesting all database from single client
+            message = {"TYPE":m_type, "ACTOR":self.my_ip}
+
+        elif m_type == "PAST_DATA":  # packet containing all past data
+            message = {"TYPE":m_type, "CONTENT":""} # TODO
+
+
         else:
-            assert False, "Message type should be QUESTION, ANSWER or VOTE"
+            assert False, "Message type is wrong"
 
         return json.dumps(message)
 
@@ -102,8 +115,12 @@ class CommunicationModule(object):
                 elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
                     break
                 
-                with self.database_lock:
-                    self.database.update_database(mes)
+                if mes["TYPE"] == "REQUEST":
+                    request_response_packet = self._generate_message("REQUEST_RESPONSE", None)
+                    self._send_message("TCP", mes["ACTOR"], request_response_packet)
+                else:    
+                    with self.database_lock:
+                        self.database.update_database(mes)
                 
         print("UDP Server killed")
 
@@ -128,9 +145,18 @@ class CommunicationModule(object):
                         elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
                             quit_listener = True
                             break
-                    
-                        with self.database_lock:
-                            self.database.update_database(mes)
+
+                        if mes["TYPE"] == "REQUEST_RESPONSE" and self.is_requesting:
+                            self.is_requesting = False
+                            request_data_packet = self._generate_message("REQUEST_DATA", None)
+                            self._send_message("TCP", mes["ACTOR"], request_data_packet)
+                        
+                        elif mes["TYPE"] == "REQUEST_DATA":
+                            pass # TODO send all past data via TCP
+
+                        elif mes["TYPE"] == "PAST_DATA":
+                            with self.database_lock:
+                                self.database.init_database(mes)
 
                     if quit_listener:
                         break
@@ -184,3 +210,9 @@ class CommunicationModule(object):
         packet_str = self._generate_message("VOTE", payload)
         for _ in range(3):
             self._send_message("UDP", "broadcast", packet_str)
+
+    
+    def init_database_after_login(self):
+        request_packet = self._generate_message("REQUEST", None)
+        self.is_requesting = True
+        self._send_message("UDP", "broadcast", request_packet)

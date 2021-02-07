@@ -31,3 +31,6 @@ class Database(object):
                 elif packet["VOTE"] == "-":
                     self.questions[question_title].downvote(user)
 
+    
+    def init_database(self, packet):
+        pass

@@ -42,5 +42,9 @@ def validate_packet(packet):
     is_answer = (packet_keys == {"TYPE", "ACTOR", "QUESTION_TITLE", "CONTENT"}) and (packet["TYPE"] == "ANSWER")
     is_vote = (packet_keys == {"TYPE", "ACTOR", "QUESTION_TITLE", "VOTE"}) and (packet["TYPE"] == "VOTE")
     is_quit = (packet_keys == {"TYPE", "ACTOR"}) and (packet["TYPE"] == "QUIT")
+    is_request = (packet_keys == {"TYPE", "ACTOR"}) and \
+        (packet["TYPE"] == "REQUEST" or packet["TYPE"] == "REQUEST_RESPONSE" or \
+         packet["TYPE"] == "REQUEST_DATA")
+    #is_past_data = TODO 
     
-    return is_question or is_answer or is_vote or is_quit
+    return is_question or is_answer or is_vote or is_quit or is_request
