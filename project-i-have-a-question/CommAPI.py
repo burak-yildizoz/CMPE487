@@ -1,7 +1,7 @@
 import os, time, json, copy, socket, select, threading, sys, base64
 
 from utils import get_my_ip
-
+from database import Database
 
 def _decode_message(data):
     """ Converts given data to dict. If it cannot or data 
@@ -48,6 +48,8 @@ class CommunicationModule(object):
         self.my_ip = get_my_ip()
         self.my_name = my_name
         self.port = comm_port
+        self.database = Database()
+        self.database_lock = threading.Lock() # will be used by tcp and udp listeners 
         
         self.udp_server_thread = None
         self.tcp_server_thread = None
@@ -129,8 +131,9 @@ class CommunicationModule(object):
                     continue
                 elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
                     break
-
-                # TODO: Update the database here
+                
+                with self.database_lock:
+                    self.database.update_database(mes)
                 
         print("UDP Server killed")
 
@@ -155,8 +158,9 @@ class CommunicationModule(object):
                         elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
                             quit_listener = True
                             break
-
-                        # TODO: Update the database here
+                    
+                        with self.database_lock:
+                            self.database.update_database(mes)
 
                     if quit_listener:
                         break

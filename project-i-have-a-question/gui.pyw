@@ -5,6 +5,7 @@ from tkinter.simpledialog import askstring
 from tkinter import ttk
 from copy import deepcopy
 from question import User, Answer, Question
+from CommAPI import CommunicationModule
 
 class Notification:
     def error_levels():
@@ -96,7 +97,8 @@ class Application(tk.Tk):
             user = self.get_username()
         assert type(user) is User
         self.user = user
-        self._questions = deepcopy(questions)
+        self._questions = questions
+        
         # program title label
         self.frm_program = tk.Frame(master=self)
         self.lbl_program = tk.Label(master=self.frm_program,
@@ -361,7 +363,11 @@ class NotificationsPage(CustomPage):
 
 if __name__ == '__main__':
     user = User('me')
+    comm_module = CommunicationModule("me", 12345)
+    comm_module.init()
     questions = [Question(user, 'Title %d'%i, 'text %d'%i)
                  for i in range(100, 0, -1)]
     app = Application(user=user, questions=questions)
     app.mainloop()
+    comm_module.kill()
+    print("Exiting app...")
