@@ -1,4 +1,4 @@
-import os, time, json, copy, socket, select, threading, sys, base64
+import os, time, json, copy, socket, select, threading, sys, base64, pickle
 
 from utils import *
 from database import Database
@@ -89,10 +89,6 @@ class CommunicationModule(object):
         elif m_type == "REQUEST_DATA": # packet for requesting all database from single client
             message = {"TYPE":m_type, "ACTOR":self.my_ip}
 
-        elif m_type == "PAST_DATA":  # packet containing all past data
-            message = {"TYPE":m_type, "CONTENT":""} # TODO
-
-
         else:
             assert False, "Message type is wrong"
 
@@ -115,7 +111,7 @@ class CommunicationModule(object):
                 elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
                     break
                 
-                if mes["TYPE"] == "REQUEST":
+                if mes["TYPE"] == "REQUEST" and not self.is_requesting and mes["ACTOR"] != self.my_ip:
                     request_response_packet = self._generate_message("REQUEST_RESPONSE", None)
                     self._send_message("TCP", mes["ACTOR"], request_response_packet)
                 else:    
@@ -139,24 +135,29 @@ class CommunicationModule(object):
                         if not data:
                             break
                         
-                        mes = decode_message(data.decode("utf-8"))
-                        if not mes:
-                            continue    
-                        elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
-                            quit_listener = True
-                            break
+                        try:
+                            past_database = pickle.loads(data)
+                            self.database = copy.deepcopy(past_database)
+                        except:
+                            mes = decode_message(data.decode("utf-8"))
+                            if not mes:
+                                continue    
+                            elif mes["TYPE"] == "QUIT" and mes["ACTOR"] == self.my_ip:
+                                quit_listener = True
+                                break
 
-                        if mes["TYPE"] == "REQUEST_RESPONSE" and self.is_requesting:
-                            self.is_requesting = False
-                            request_data_packet = self._generate_message("REQUEST_DATA", None)
-                            self._send_message("TCP", mes["ACTOR"], request_data_packet)
-                        
-                        elif mes["TYPE"] == "REQUEST_DATA":
-                            pass # TODO send all past data via TCP
+                            if mes["TYPE"] == "REQUEST_RESPONSE" and self.is_requesting:
+                                self.is_requesting = False
+                                request_data_packet = self._generate_message("REQUEST_DATA", None)
+                                self._send_message("TCP", mes["ACTOR"], request_data_packet)
+                            
+                            elif mes["TYPE"] == "REQUEST_DATA":
+                                pickled_database = pickle.dumps(self.database)
+                                self._send_message("TCP", mes["ACTOR"], pickled_database)
 
-                        elif mes["TYPE"] == "PAST_DATA":
-                            with self.database_lock:
-                                self.database.init_database(mes)
+                            elif mes["TYPE"] == "PAST_DATA":
+                                with self.database_lock:
+                                    self.database.init_database(mes)
 
                     if quit_listener:
                         break
@@ -173,7 +174,10 @@ class CommunicationModule(object):
                     s.settimeout(2)
                     s.connect((ip_address, self.port))
                     s.settimeout(None)
-                    s.sendall(str.encode(message_str, "utf-8"))
+                    if isinstance(message_str, str):
+                        s.sendall(str.encode(message_str, "utf-8"))
+                    else:
+                        s.sendall(message_str) # Send past data
                 except:
                     return False
             return True

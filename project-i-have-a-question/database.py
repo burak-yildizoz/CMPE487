@@ -1,4 +1,7 @@
+import pickle
+
 from question import *
+
 
 class Database(object):
 
@@ -30,7 +33,3 @@ class Database(object):
                     self.questions[question_title].upvote(user)
                 elif packet["VOTE"] == "-":
                     self.questions[question_title].downvote(user)
-
-    
-    def init_database(self, packet):
-        pass
