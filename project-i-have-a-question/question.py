@@ -25,12 +25,12 @@ class User:
 
 
 
-class Answer:
+class BaseText:
     def __init__(self, author, text):
         assert type(author) is User
         assert type(text) is str
         if not text or text.isspace():
-            raise Exception('The answer is empty')
+            raise Exception('The text is empty')
         self._text = text
         self.author = author
         self._upvoters = []
@@ -55,13 +55,6 @@ class Answer:
         self.eligible_vote(voter)
         self._downvoters.append(voter)
 
-    def __eq__(self, other):
-        return (self.author == other.author
-                and self._text == other.get_text())
-
-    def __lt__(self, other):
-        return self.get_vote_status() < other.get_vote_status()
-
     def get_vote_status(self):
         return len(self._upvoters) - len(self._downvoters)
 
@@ -73,8 +66,24 @@ class Answer:
             return -1
         return 0
 
+    def get_title(self):
+        return deepcopy(self._title)
+
     def get_text(self):
         return deepcopy(self._text)
+
+
+
+class Answer(BaseText):
+    def __init__(self, author, text):
+        super().__init__(author, text)
+
+    def __eq__(self, other):
+        return (self._title == other.get_title()
+                and self._text == other.get_text())
+
+    def __lt__(self, other):
+        return self.get_vote_status() < other.get_vote_status()
 
     def print(self):
         print('Answer (%d votes): \n%s'%(
@@ -84,21 +93,18 @@ class Answer:
 
 
 
-class Question(Answer):
+class Question(BaseText):
     def __init__(self, author, title, text):
-        assert type(author) is User
         assert type(title) is str
         if not title or title.isspace():
             raise Exception('The question title is empty')
-        assert type(text) is str
-        if not text or text.isspace():
-            raise Exception('The question text is empty')
         super().__init__(author, text)
         self._title = title
         self._answers = []
 
     def answer(self, answer):
         assert type(answer) is Answer
+        answer._title = self._title
         if answer in self._answers:
             raise Exception('The same answer exists')
         self._answers.append(answer)
@@ -119,9 +125,6 @@ class Question(Answer):
             return self.get_vote_status() < other.get_vote_status()
         else:
             return self_answered
-
-    def get_title(self):
-        return deepcopy(self._title)
 
     def get_problem(self):
         title = self.get_title()
@@ -162,3 +165,5 @@ if __name__ == '__main__':
     q1.answer(a2)
     a2.upvote(u1)
     q1.print()
+    a2.get_title()  # 'My Title'
+    q1.answer(Answer(u2, 'This is my answer'))  # this line should throw
