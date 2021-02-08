@@ -95,9 +95,13 @@ class Application(tk.Tk):
         if root is None:
             self.title('I Have A Question')
 
-        alias = self.get_input('Your name:')
+        test = True
+        alias = 'me'
+        passwd = 'mod'
+        if not test:
+            alias = self.get_input('Your name:')
+            passwd = self.get_input('Password (for teachers):')
         self.user = User(alias=alias)
-        passwd = self.get_input('Password (for teachers):')
         is_mod = passwd == 'mod'
 
         lbl_wait = tk.Label(self, text='Waiting for the room ...')
@@ -110,14 +114,22 @@ class Application(tk.Tk):
         self.comm_module.init()
         if not is_mod:
             lbl_wait.config(text='Waiting for host ...')
-            while self.comm_module.is_requesting:
+            while True:
                 self.comm_module.init_database_after_login()
-                time.sleep(2)
+                if not self.comm_module.is_requesting:
+                    break
+                t = 2000    # ms
+                for i in range(0, t, 10):
+                    time.sleep(i / 1000)
+                    self.refresh()
         lbl_wait.destroy()
 
         self.current_page = 'HomePage'
         self.comm_module.set_application(self)
         self._questions = self.comm_module.database.questions
+        if test:
+            q = Question(self.user, 'Test Question', 'text')
+            self._questions[q.get_title()] = q
         assert (type(self._questions) is dict
                 and all(type(self._questions[title]) is Question
                         for title in self._questions))
@@ -350,15 +362,19 @@ class AnswerPage(CustomPage):
             return
         self.lbl_title = tk.Label(master=self.frame,
                                   text=self.selected_question.get_title())
-        self.tfrm_question = TextFrame(master=self.frame,
+        self.lbl_title.pack()
+        self.sfrm = ScrollableFrame(master=self.frame)
+        self.sfrm.pack()
+        self.tfrm_question = TextFrame(master=self.sfrm,
                                        answer=self.selected_question,
                                        user=self.app.user)
-        self.lbl_answer = tk.Label(master=self.frame, text='Answers (%d)'%(
+        self.tfrm_question.pack()
+        self.lbl_answer = tk.Label(master=self.sfrm, text='Answers (%d)'%(
             self.selected_question.answers_size()))
-        self.sfrm_answer = ScrollableFrame(master=self.frame)
+        self.lbl_answer.pack()
         for answer in self.selected_question.get_answers():
-            TextFrame(master=self.sfrm_answer, answer=answer)
-        raise 'to be implemented'
+            TextFrame(master=self.sfrm, answer=answer).pack()
+
 
 
 class NotificationsPage(CustomPage):
