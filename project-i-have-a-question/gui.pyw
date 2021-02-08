@@ -62,9 +62,10 @@ class ScrollableFrame(ttk.Frame):
 
 
 class TextFrame(tk.Frame):
-    def __init__(self, master, answer, user):
+    def __init__(self, master, answer, user, app):
         assert type(user) is User
         super().__init__(master)
+        self.app = app
         self.answer = answer
         self.user = user
         # text and author labels
@@ -88,27 +89,30 @@ class TextFrame(tk.Frame):
         x, y = event.x, event.y
 
         if x < 0 or x > self.w or y < 0 or y > self.w:
-            return False
+            return
 
         if x < (self.w / 2):
-            return y > (2*x+self.w)
+            if y > (2*x+self.w):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "+")
         else:
-            return y > 2*(x-self.w/2)
+            if y > 2*(x-self.w/2):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "+")
 
-        return False
+        return
 
     def fn_downvote(self, event):
         x, y = event.x, (self.w - event.y)
 
         if x < 0 or x > self.w or y < 0 or y > self.w:
-            return False
+            return
 
         if x < (self.w / 2):
-            return y > (2*x+self.w)
+            if y > (2*x+self.w):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "-")
         else:
-            return y > 2*(x-self.w/2)
-
-        return False
+            if y > 2*(x-self.w/2):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "-")
+        return
 
 
 class Application(tk.Tk):
@@ -384,13 +388,14 @@ class AnswerPage(CustomPage):
         self.sfrm.pack()
         self.tfrm_question = TextFrame(master=self.sfrm,
                                        answer=self.selected_question,
-                                       user=self.app.user)
+                                       user=self.app.user,
+                                       app=self.app)
         self.tfrm_question.pack()
         self.lbl_answer = tk.Label(master=self.sfrm, text='Answers (%d)'%(
             self.selected_question.answers_size()))
         self.lbl_answer.pack()
         for answer in self.selected_question.get_answers():
-            TextFrame(master=self.sfrm, answer=answer).pack()
+            TextFrame(master=self.sfrm, answer=answer, app=self.app).pack()
 
 
 
