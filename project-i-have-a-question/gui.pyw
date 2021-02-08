@@ -1,10 +1,12 @@
 # https://realpython.com/python-gui-tkinter/
-import time
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from tkinter.simpledialog import askstring
 from tkinter import ttk
 from copy import deepcopy
+import time
+import atexit
+
 from question import User, Answer, Question
 from CommAPI import CommunicationModule
 
@@ -88,23 +90,40 @@ class TextFrame(tk.Frame):
 
 
 class Application(tk.Tk):
-    def __init__(self, comm_module, root=None, user=None):
-        self.current_page = "HomePage"
-        self.comm_module = comm_module
-        self.comm_module.set_application(self)
-        questions = comm_module.database.questions
-
-        assert (type(questions) is dict
-                and all(type(questions[title]) is Question for title in questions))
+    def __init__(self, root=None):
         super().__init__(root)
         if root is None:
             self.title('I Have A Question')
-        if user is None:
-            user = self.get_username()
-        assert type(user) is User
-        self.user = user
-        self._questions = questions
-        
+
+        #alias = self.get_input('Your name:')
+        self.user = User(alias='me')
+        #passwd = self.get_input('Password (for teachers):')
+        is_mod = False#passwd == 'mod'
+
+        lbl_wait = tk.Label(self, text='Waiting for the room ...')
+        lbl_wait.pack()
+        self.update_idletasks()
+        self.update()
+        self.comm_module = CommunicationModule(self.user.get_alias(),
+                                               is_mod, 12345)
+        atexit.register(self.cleanup)
+        self.comm_module.init()
+        if not is_mod:
+            while True:
+                if not self.comm_module.is_requesting:
+                    break
+                self.comm_module.init_database_after_login()
+                time.sleep(2)   # fixme: this blocks the gui
+        print('here')
+        lbl_wait.destroy()
+
+        self.current_page = 'HomePage'
+        self.comm_module.set_application(self)
+        self.questions = self.comm_module.database.questions
+        assert (type(self.questions) is dict
+                and all(type(self.questions[title]) is Question
+                        for title in self.questions))
+
         # program title label
         self.frm_program = tk.Frame(master=self)
         self.lbl_program = tk.Label(master=self.frm_program,
@@ -138,9 +157,13 @@ class Application(tk.Tk):
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky='NSEW')
         # default page
-        self.show_frame('HomePage')
+        self.show_frame(self.current_page)
         self.new_notification(Notification(
             'Notifications will appear here', 'info'))
+
+    def cleanup(self):
+        self.comm_module.kill()
+        print('Exiting app...')
 
     def update_notification(self):
         for i in range(len(self.notifications)):
@@ -158,12 +181,11 @@ class Application(tk.Tk):
     def unreads_size(self):
         return sum([n.unread() for n in self.notifications])
 
-    def get_username(self):
+    def get_input(self, prompt):
         self.withdraw()
-        alias = askstring(self.title(), 'Your name:')
-        user = User(alias)
+        reply = askstring(self.title(), prompt)
         self.deiconify()
-        return user
+        return reply
 
     def show_frame(self, page_name):
         self.current_page = page_name
@@ -370,19 +392,5 @@ class NotificationsPage(CustomPage):
 
 
 if __name__ == '__main__':
-    user = User('me')
-
-    is_moderator = False # TODO we should ask user this
-
-    comm_module = CommunicationModule("me", is_moderator, 12345)
-    comm_module.init()
-    if not is_moderator:
-        print("Waiting for the room ...")
-        while(comm_module.is_requesting):
-            comm_module.init_database_after_login()
-            time.sleep(2)
-            pass
-    app = Application(comm_module=comm_module, user=user)
-    app.mainloop()
-    comm_module.kill()
-    print("Exiting app...")
+    app = Application()
+    #app.mainloop()

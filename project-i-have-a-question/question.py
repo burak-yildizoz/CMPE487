@@ -1,16 +1,14 @@
 from copy import deepcopy
 import socket
 
+from utils import get_my_ip
+
 class User:
-    def get_my_ip():
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        return s.getsockname()[0]
     def __init__(self, alias, ip_address=None):
         assert type(alias) is str
         if not alias or alias.isspace():
             raise Exception('The alias is empty')
-        self._ip = User.get_my_ip() if ip_address is None else ip_address
+        self._ip = get_my_ip() if ip_address is None else ip_address
         self._alias =  alias
     def __eq__(self, other):
         return self.get_ip() == other.get_ip()
