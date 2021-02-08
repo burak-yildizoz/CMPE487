@@ -34,27 +34,35 @@ class BaseText:
         self._upvoters = []
         self._downvoters = []
 
-    def eligible_vote(self, voter):
+    def eligible_vote(self, voter, vote_type):
         assert type(voter) is User
         if voter == self.author:
             print('You cannot vote your own %s'%type(self).__name__)
             return False
-        if voter in self._upvoters:
+        if voter in self._upvoters and vote_type=="+":
             print('%s already upvoted this %s'%(
                 voter.fullname(), type(self).__name__))
             return False
-        if voter in self._downvoters:
+        if voter in self._downvoters and vote_type=="-":
             print('%s already downvoted this %s'%(
                 voter.fullname(), type(self).__name__))
             return False
         return True
 
     def upvote(self, voter):
-        if self.eligible_vote(voter):
+        if self.eligible_vote(voter, "+"):
+            for i, downvoter in enumerate(self._downvoters):
+                if downvoter == voter:
+                    self._downvoters.pop(i)
+                    return
             self._upvoters.append(voter)
 
     def downvote(self, voter):
-        if self.eligible_vote(voter):
+        if self.eligible_vote(voter, "-"):
+            for i, upvoter in enumerate(self._upvoters):
+                if upvoter == voter:
+                    self._upvoters.pop(i)
+                    return
             self._downvoters.append(voter)
 
     def get_vote_status(self):

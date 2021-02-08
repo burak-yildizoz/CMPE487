@@ -12,7 +12,7 @@ class Database(object):
         # packet is already validated
         if packet["TYPE"] == "QUESTION":
             # TODO username instead of ip
-            user = User("alias", packet["ACTOR"])
+            user = User(packet["ACTOR"], packet["ACTOR"])
             new_question = Question(user, packet["TITLE"], packet["CONTENT"])
 
             if not (packet["TITLE"] in self.questions):
@@ -20,7 +20,7 @@ class Database(object):
 
         elif packet["TYPE"] == "ANSWER":
             if packet["QUESTION_TITLE"] in self.questions:
-                user = User("alias", packet["ACTOR"])
+                user = User(packet["ACTOR"], packet["ACTOR"])
                 answer_object = Answer(user, packet["CONTENT"])
                 self.questions[packet["QUESTION_TITLE"]].answer(answer_object)
 
@@ -28,7 +28,7 @@ class Database(object):
             assert packet["VOTE"] == "+" or packet["VOTE"] == "-"
             question_title = packet["QUESTION_TITLE"]
             if question_title in self.questions:
-                user = User("alias", packet["ACTOR"])
+                user = User(packet["ACTOR"], packet["ACTOR"])
                 if packet["VOTE"] == "+":
                     self.questions[question_title].upvote(user)
                 elif packet["VOTE"] == "-":
