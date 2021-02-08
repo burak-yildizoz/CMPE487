@@ -201,14 +201,14 @@ class CommunicationModule(object):
     def add_question(self, title, content):
         payload = {"TITLE":title, "CONTENT":content}
         packet_str = self._generate_message("QUESTION", payload)
-        for _ in range(3):
+        for _ in range(1):
             self._send_message("UDP", "broadcast", packet_str)
 
 
     def add_answer(self, question_title, content):
         payload = {"QUESTION_TITLE":question_title, "CONTENT":content}
         packet_str = self._generate_message("ANSWER", payload)
-        for _ in range(3):
+        for _ in range(1):
             self._send_message("UDP", "broadcast", packet_str)
 
 
@@ -216,7 +216,7 @@ class CommunicationModule(object):
         assert vote == "+" or vote == "-"
         payload = {"QUESTION_TITLE":question_title, "VOTE":vote}
         packet_str = self._generate_message("VOTE", payload)
-        for _ in range(3):
+        for _ in range(1):
             self._send_message("UDP", "broadcast", packet_str)
 
 
