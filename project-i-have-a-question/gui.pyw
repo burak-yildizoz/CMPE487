@@ -95,34 +95,35 @@ class Application(tk.Tk):
         if root is None:
             self.title('I Have A Question')
 
-        #alias = self.get_input('Your name:')
-        self.user = User(alias='me')
-        #passwd = self.get_input('Password (for teachers):')
-        is_mod = False#passwd == 'mod'
+        alias = self.get_input('Your name:')
+        self.user = User(alias=alias)
+        passwd = self.get_input('Password (for teachers):')
+        is_mod = passwd == 'mod'
 
         lbl_wait = tk.Label(self, text='Waiting for the room ...')
         lbl_wait.pack()
-        self.update_idletasks()
-        self.update()
+        self.refresh()
         self.comm_module = CommunicationModule(self.user.get_alias(),
                                                is_mod, 12345)
-        atexit.register(self.cleanup)
+        self.refresh()
+        self.protocol('WM_DELETE_WINDOW', self.cleanup)
         self.comm_module.init()
         if not is_mod:
-            while True:
-                if not self.comm_module.is_requesting:
-                    break
+            lbl_wait.config(text='Waiting for host ...')
+            while self.comm_module.is_requesting:
+                t = 2000    # ms
+                for i in range(0, t, 10):
+                    time.sleep(i / 1000)
+                    self.refresh()
                 self.comm_module.init_database_after_login()
-                time.sleep(2)   # fixme: this blocks the gui
-        print('here')
         lbl_wait.destroy()
 
         self.current_page = 'HomePage'
         self.comm_module.set_application(self)
-        self.questions = self.comm_module.database.questions
-        assert (type(self.questions) is dict
-                and all(type(self.questions[title]) is Question
-                        for title in self.questions))
+        self._questions = self.comm_module.database.questions
+        assert (type(self._questions) is dict
+                and all(type(self._questions[title]) is Question
+                        for title in self._questions))
 
         # program title label
         self.frm_program = tk.Frame(master=self)
@@ -160,10 +161,17 @@ class Application(tk.Tk):
         self.show_frame(self.current_page)
         self.new_notification(Notification(
             'Notifications will appear here', 'info'))
+        self.mainloop()
+
+    def refresh(self):
+        self.update_idletasks()
+        self.update()
 
     def cleanup(self):
+        print('Cleanup in progress ...')
         self.comm_module.kill()
-        print('Exiting app...')
+        self.destroy()
+        print('Cleanup done!')
 
     def update_notification(self):
         for i in range(len(self.notifications)):
@@ -393,4 +401,3 @@ class NotificationsPage(CustomPage):
 
 if __name__ == '__main__':
     app = Application()
-    #app.mainloop()
