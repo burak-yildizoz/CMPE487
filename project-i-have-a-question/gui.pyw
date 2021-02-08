@@ -63,9 +63,10 @@ class ScrollableFrame(ttk.Frame):
 
 
 class TextFrame(tk.Frame):
-    def __init__(self, master, answer, user):
+    def __init__(self, master, answer, user, app):
         assert type(user) is User
         super().__init__(master)
+        self.app = app
         self.answer = answer
         self.user = user
         # text and author labels
@@ -103,12 +104,35 @@ class TextFrame(tk.Frame):
         self.lbl_user.grid(row=1, column=1, sticky='NSEW', pady=self.pady)
         self.grid_columnconfigure(1, weight=1)
 
+
     def fn_upvote(self, event):
-        raise 'to be implemented'
+        x, y = event.x, event.y
+
+        if x < 0 or x > self.w or y < 0 or y > self.w:
+            return
+
+        if x < (self.w / 2):
+            if y > (2*x+self.w):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "+")
+        else:
+            if y > 2*(x-self.w/2):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "+")
+
+        return
 
     def fn_downvote(self, event):
-        raise 'to be implemented'
+        x, y = event.x, (self.w - event.y)
 
+        if x < 0 or x > self.w or y < 0 or y > self.w:
+            return
+
+        if x < (self.w / 2):
+            if y > (2*x+self.w):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "-")
+        else:
+            if y > 2*(x-self.w/2):
+                self.app.comm_module.add_vote(self.answer.get_problem()[0], "-")
+        return
 
 
 class Application(tk.Tk):
@@ -136,14 +160,9 @@ class Application(tk.Tk):
         self.comm_module.init()
         if not is_mod:
             lbl_wait.config(text='Waiting for host ...')
-            while True:
+            while self.comm_module.is_requesting:
                 self.comm_module.init_database_after_login()
-                if not self.comm_module.is_requesting:
-                    break
-                t = 2000    # ms
-                for i in range(0, t, 10):
-                    time.sleep(i / 1000)
-                    self.refresh()
+                time.sleep(2)
         lbl_wait.destroy()
 
         self.current_page = 'HomePage'
@@ -395,14 +414,15 @@ class AnswerPage(CustomPage):
         self.lbl_title.pack(fill=tk.BOTH)
         self.tfrm_question = TextFrame(master=self.sfrm.sfrm,
                                        answer=self.selected_question,
-                                       user=self.app.user)
+                                       user=self.app.user,
+                                       app=self.app)
         self.tfrm_question.pack(fill=tk.BOTH)
         self.lbl_answer = tk.Label(master=self.sfrm.sfrm, text='Answers (%d)'%(
             self.selected_question.answers_size()))
         self.lbl_answer.pack(fill=tk.BOTH)
         for answer in self.selected_question.get_answers():
-            TextFrame(master=self.sfrm.sfrm, answer=answer,
-                      user=self.app.user).pack(fill=tk.BOTH)
+            TextFrame(master=self.sfrm.sfrm, answer=answer, user=self.app.user, app=self.app).pack(fill=tk.BOTH)
+
 
 
 
