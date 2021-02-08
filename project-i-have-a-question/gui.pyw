@@ -261,6 +261,9 @@ class Application(tk.Tk):
         else:
             self.comm_module.add_question(title, content)
 
+    def answer_question(self, title, answer):
+        raise 'to be implemented'
+
     def get_questions(self):
         questions = sorted(list(self._questions.values()), reverse=True)
         return questions
@@ -375,7 +378,7 @@ class AnswerPage(CustomPage):
         self.scrb.pack(side=tk.LEFT, fill=tk.Y)
         self.selected_question = None
         self.frame = tk.Frame(master=self)
-        self.frame.pack(fill=tk.BOTH)
+        self.str_var = tk.StringVar()
 
     def update(self):
         self.questions = self.app.get_questions()
@@ -394,25 +397,35 @@ class AnswerPage(CustomPage):
         self.selected_question = self.questions[idx]
         self.show()
 
-    def show(self):
-        # another page at the right to inspect the selected question
+    def load_answer_frame(self):
         self.frame.destroy()
         self.frame = tk.Frame(master=self)
-        self.frame.pack(fill=tk.BOTH)
+        self.frame.pack(fill=tk.BOTH, expand=True)
         if self.selected_question is None:
-            return
+            return False
         try:
             idx = self.questions.index(self.selected_question)
+            self.selected_question = self.questions[idx]
         except ValueError:
             self.app.new_notification(Notification(
                 'Could not find previously selected question: %s'%(
                     self.selected_question.get_title()), 'error'))
+            return False
+        self.lbl_title = tk.Label(master=self.frame,
+                                  text=self.selected_question.get_title())
+        self.lbl_title.pack(side=tk.TOP, fill=tk.BOTH)
+        return True
+
+    def show(self):
+        # another page at the right to inspect the selected question
+        if not self.load_answer_frame():
             return
+        self.btn_wrt_answer = tk.Button(master=self.frame, text='Write Answer',
+                                        command=self.fn_write_answer)
+        self.btn_wrt_answer.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        # scroll answers
         self.sfrm = ScrollableFrame(master=self.frame)
         self.sfrm.pack(fill=tk.BOTH, expand=True)
-        self.lbl_title = tk.Label(master=self.sfrm.sfrm,
-                                  text=self.selected_question.get_title())
-        self.lbl_title.pack(fill=tk.BOTH)
         self.tfrm_question = TextFrame(master=self.sfrm.sfrm,
                                        answer=self.selected_question,
                                        user=self.app.user,
@@ -422,7 +435,47 @@ class AnswerPage(CustomPage):
             self.selected_question.answers_size()))
         self.lbl_answer.pack(fill=tk.BOTH)
         for answer in self.selected_question.get_answers():
-            TextFrame(master=self.sfrm.sfrm, answer=answer, user=self.app.user, app=self.app).pack(fill=tk.BOTH)
+            TextFrame(master=self.sfrm.sfrm, answer=answer, user=self.app.user,
+                      app=self.app).pack(fill=tk.BOTH)
+
+    def fn_write_answer(self):
+        # answer the question again at the right
+        if not self.load_answer_frame():
+            return
+        self.btn_back = tk.Button(master=self.frame, text='Return to question',
+                                  command=self.fn_return_question)
+        self.btn_back.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.btn_answer = tk.Button(master=self.frame, text='Submit answer',
+                                    command=self.fn_submit_answer)
+        self.btn_answer.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.stxt_answer = ScrolledText(master=self.frame)
+        self.stxt_answer.insert('1.0', self.str_var.get())
+        self.stxt_answer.pack(fill=tk.BOTH, expand=True)
+
+    def fn_return_question(self):
+        text = self.stxt_answer.get('1.0', tk.END)
+        self.str_var.set(text[0:-1])
+        self.show()
+
+    def fn_submit_answer(self):
+        title = self.selected_question.get_title()
+        text = self.stxt_answer.get('1.0', tk.END)
+        self.str_var.set(text[0:-1])
+        try:
+            answer = Answer(self.app.user, text)
+        except Exception as e:
+            self.app.new_notification(Notification(str(e), 'warn'))
+            return
+        try:
+            self.app.answer_question(title, answer)
+        except Exception as e:
+            self.app.new_notification(Notification(
+                '%s: %s'%(e, title), 'error'))
+            return
+        self.app.new_notification(Notification(
+                'You answered a question: %s'%title, 'success'))
+        self.stxt_answer.delete('1.0', tk.END)
+        self.show()
 
 
 
