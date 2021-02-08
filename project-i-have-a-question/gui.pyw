@@ -1,4 +1,5 @@
 # https://realpython.com/python-gui-tkinter/
+import time
 import tkinter as tk
 from tkinter.scrolledtext import ScrolledText
 from tkinter.simpledialog import askstring
@@ -88,7 +89,9 @@ class TextFrame(tk.Frame):
 
 class Application(tk.Tk):
     def __init__(self, comm_module, root=None, user=None):
+        self.current_page = "HomePage"
         self.comm_module = comm_module
+        self.comm_module.set_application(self)
         questions = comm_module.database.questions
 
         assert (type(questions) is dict
@@ -368,10 +371,17 @@ class NotificationsPage(CustomPage):
 
 if __name__ == '__main__':
     user = User('me')
-    comm_module = CommunicationModule("me", 12345)
+
+    is_moderator = False # TODO we should ask user this
+
+    comm_module = CommunicationModule("me", is_moderator, 12345)
     comm_module.init()
-    #questions = [Question(user, 'Title %d'%i, 'text %d'%i)
-    #             for i in range(100, 0, -1)]
+    if not is_moderator:
+        print("Waiting for the room ...")
+        while(comm_module.is_requesting):
+            comm_module.init_database_after_login()
+            time.sleep(2)
+            pass
     app = Application(comm_module=comm_module, user=user)
     app.mainloop()
     comm_module.kill()
