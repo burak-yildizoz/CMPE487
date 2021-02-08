@@ -6,7 +6,7 @@ from database import Database
 
 class CommunicationModule(object):
 
-    def __init__(self, my_name, comm_port):
+    def __init__(self, my_name, is_moderator, comm_port):
         """ CommunicationModule manages the sending and receiving
         messages.
 
@@ -20,11 +20,15 @@ class CommunicationModule(object):
         self.port = comm_port
         self.database = Database()
         self.database_lock = threading.Lock() # will be used by tcp and udp listeners
-        self.is_requesting = False
+        self.is_requesting = False if is_moderator else True
+        self.is_moderator = is_moderator
 
         self.udp_server_thread = None
         self.tcp_server_thread = None
+        self.app = None
 
+    def set_application(self, app):
+        self.app = app
 
     def init(self):
         """ Initializes the listener """
@@ -36,7 +40,6 @@ class CommunicationModule(object):
         self.tcp_server_thread.start()
 
         time.sleep(2) # wait for listeners to get ready
-        self.init_database_after_login()
 
 
     def kill(self):
@@ -117,6 +120,8 @@ class CommunicationModule(object):
                 else:
                     with self.database_lock:
                         self.database.update_database(mes)
+                        if self.app:
+                            self.app.show_frame(self.app.current_page)
 
         print("UDP Server killed")
 
@@ -137,7 +142,10 @@ class CommunicationModule(object):
 
                         try:
                             past_database = pickle.loads(data)
+                            print("Past room data downloaded!")
                             self.database = copy.deepcopy(past_database)
+                            if self.app:
+                                self.app.show_frame(self.app.current_page)
                         except:
                             mes = utils.decode_message(data.decode("utf-8"))
                             if not mes:
