@@ -46,18 +46,19 @@ class Notification:
 
 
 # https://blog.tecladocode.com/tkinter-scrollable-frames/
+# pack to ScrollableFrame.sfrm
 class ScrollableFrame(ttk.Frame):
     def __init__(self, master):
         super().__init__(master)
         canvas = tk.Canvas(self)
         scrollbar = ttk.Scrollbar(self, orient='vertical', command=canvas.yview)
-        self.scrollable_frame = ttk.Frame(canvas)
-        self.scrollable_frame.bind('<Configure>', lambda e: canvas.configure(
+        self.sfrm = ttk.Frame(canvas)
+        self.sfrm.bind('<Configure>', lambda e: canvas.configure(
             scrollregion=canvas.bbox('all')))
-        canvas.create_window((0, 0), window=self.scrollable_frame, anchor='nw')
+        canvas.create_window((0, 0), window=self.sfrm, anchor='nw')
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
 
 
@@ -75,15 +76,34 @@ class TextFrame(tk.Frame):
         user_reaction = answer.get_user_reaction(self.user)
         self.w = 30
         self.pady = 5
+        self.frm_vote = tk.Frame(master=self)
         # upvote
-        self.cnv_up = tk.Canvas(master=self, height=self.w/2, width=self.w)
+        self.cnv_up = tk.Canvas(master=self.frm_vote,
+                                height=self.w/2, width=self.w)
         up_fill = 'orange' if user_reaction == 1 else 'gray'
-        self.cnv_up.create_polygon(0, 0, self.w, 0, self.w/2, self.w/2,
+        self.cnv_up.create_polygon(0, self.w/2, self.w/2, 0, self.w, self.w/2,
                                    fill=up_fill)
         self.cnv_up.bind('<Button-1>', self.fn_upvote)
         # vote count
-        self.lbl_count = tk.Label(master=self, text=answer.get_vote_status())
-        raise 'to be implemented'
+        self.lbl_count = tk.Label(master=self.frm_vote,
+                                  text=answer.get_vote_status())
+        # downvote
+        self.cnv_down = tk.Canvas(master=self.frm_vote,
+                                  height=self.w/2, width=self.w)
+        down_fill = 'orange' if user_reaction == -1 else 'gray'
+        self.cnv_down.create_polygon(0, 0, self.w/2, self.w/2, self.w, 0,
+                                   fill=down_fill)
+        self.cnv_down.bind('<Button-1>', self.fn_downvote)
+        # layout
+        self.cnv_up.pack(fill=tk.X)
+        self.lbl_count.pack(fill=tk.X)
+        self.cnv_down.pack(fill=tk.X)
+        self.frm_vote.grid(row=0, column=0, sticky='NSEW',
+                           rowspan=2, pady=self.pady)
+        self.lbl_text.grid(row=0, column=1, sticky='NSEW', pady=self.pady)
+        self.lbl_user.grid(row=1, column=1, sticky='NSEW', pady=self.pady)
+        self.grid_columnconfigure(1, weight=1)
+
 
     def fn_upvote(self, event):
         x, y = event.x, event.y
@@ -149,7 +169,10 @@ class Application(tk.Tk):
         self.comm_module.set_application(self)
         self._questions = self.comm_module.database.questions
         if test:
-            q = Question(self.user, 'Test Question', 'text')
+            q = Question(self.user, 'Test Question', 'question text')
+            q.answer(Answer(self.user, 'This is first answer'))
+            q.answer(Answer(self.user, ('This is second answer\n'
+                                        'which is multiline')))
             self._questions[q.get_title()] = q
         assert (type(self._questions) is dict
                 and all(type(self._questions[title]) is Question
@@ -273,7 +296,7 @@ class HomePage(CustomPage):
         self.lbl_welcome.grid(row=0, sticky='EW', pady=10)
         self.btn_ask.grid(row=1)
         self.btn_notify.grid(row=3)
-        tk.Grid.columnconfigure(self, 0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
     def update(self):
         self.btn_notify.config(
@@ -307,14 +330,14 @@ class AskPage(CustomPage):
         self.btn_submit.pack(fill=tk.BOTH)
         # display the frames
         cols = 50
-        self.frm_title_lbl.grid(row=0, column=0, stick='NSW')
+        self.frm_title_lbl.grid(row=0, column=0, sticky='NSW')
         self.frm_title_ent.grid(row=0, column=1,
                                 columnspan=cols-1, sticky='NSEW')
         self.frm_question.grid(row=1, columnspan=cols, sticky='NSEW')
         self.frm_submit.grid(row=2, columnspan=cols, sticky='NSEW')
-        tk.Grid.rowconfigure(self, 1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         for i in range(cols):
-            tk.Grid.columnconfigure(self, i, weight=1)
+            self.grid_columnconfigure(i, weight=1)
 
     def fn_submit(self):
         title = self.ent_title.get()
@@ -350,6 +373,8 @@ class AnswerPage(CustomPage):
         self.qlist.pack(side=tk.LEFT, fill=tk.BOTH)
         self.scrb.pack(side=tk.LEFT, fill=tk.Y)
         self.selected_question = None
+        self.frame = tk.Frame(master=self)
+        self.frame.pack(fill=tk.BOTH)
 
     def update(self):
         self.questions = self.app.get_questions()
@@ -370,8 +395,9 @@ class AnswerPage(CustomPage):
 
     def show(self):
         # another page at the right to inspect the selected question
+        self.frame.destroy()
         self.frame = tk.Frame(master=self)
-        self.frame.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.frame.pack(fill=tk.BOTH)
         if self.selected_question is None:
             return
         try:
@@ -381,21 +407,22 @@ class AnswerPage(CustomPage):
                 'Could not find previously selected question: %s'%(
                     self.selected_question.get_title()), 'error'))
             return
-        self.lbl_title = tk.Label(master=self.frame,
-                                  text=self.selected_question.get_title())
-        self.lbl_title.pack()
         self.sfrm = ScrollableFrame(master=self.frame)
-        self.sfrm.pack()
-        self.tfrm_question = TextFrame(master=self.sfrm,
+        self.sfrm.pack(fill=tk.BOTH, expand=True)
+        self.lbl_title = tk.Label(master=self.sfrm.sfrm,
+                                  text=self.selected_question.get_title())
+        self.lbl_title.pack(fill=tk.BOTH)
+        self.tfrm_question = TextFrame(master=self.sfrm.sfrm,
                                        answer=self.selected_question,
                                        user=self.app.user,
                                        app=self.app)
-        self.tfrm_question.pack()
-        self.lbl_answer = tk.Label(master=self.sfrm, text='Answers (%d)'%(
+        self.tfrm_question.pack(fill=tk.BOTH)
+        self.lbl_answer = tk.Label(master=self.sfrm.sfrm, text='Answers (%d)'%(
             self.selected_question.answers_size()))
-        self.lbl_answer.pack()
+        self.lbl_answer.pack(fill=tk.BOTH)
         for answer in self.selected_question.get_answers():
-            TextFrame(master=self.sfrm, answer=answer, app=self.app).pack()
+            TextFrame(master=self.sfrm.sfrm, answer=answer, user=self.app.user, app=self.app).pack(fill=tk.BOTH)
+
 
 
 
