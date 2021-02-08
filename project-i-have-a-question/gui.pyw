@@ -111,11 +111,8 @@ class Application(tk.Tk):
         if not is_mod:
             lbl_wait.config(text='Waiting for host ...')
             while self.comm_module.is_requesting:
-                t = 2000    # ms
-                for i in range(0, t, 10):
-                    time.sleep(i / 1000)
-                    self.refresh()
                 self.comm_module.init_database_after_login()
+                time.sleep(2)
         lbl_wait.destroy()
 
         self.current_page = 'HomePage'
