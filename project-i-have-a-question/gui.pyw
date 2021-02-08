@@ -141,7 +141,7 @@ class Application(tk.Tk):
         if root is None:
             self.title('I Have A Question')
 
-        test = True
+        test = False
         alias = 'me'
         passwd = 'mod'
         if not test:
@@ -257,8 +257,9 @@ class Application(tk.Tk):
     def add_question(self, question):
         title, content = question.get_problem()
         if title in self._questions:
-            raise Exception('The same question exists')
-        self.comm_module.add_question(title, content)
+            print('The same question exists')
+        else:
+            self.comm_module.add_question(title, content)
 
     def get_questions(self):
         questions = sorted(list(self._questions.values()), reverse=True)

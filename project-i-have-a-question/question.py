@@ -7,7 +7,7 @@ class User:
     def __init__(self, alias, ip_address=None):
         assert type(alias) is str
         if not alias or alias.isspace():
-            raise Exception('The alias is empty')
+            alias = "N/A"
         self._ip = get_my_ip() if ip_address is None else ip_address
         self._alias =  alias
     def __eq__(self, other):
@@ -28,7 +28,7 @@ class BaseText:
         assert type(author) is User
         assert type(text) is str
         if not text or text.isspace():
-            raise Exception('The text is empty')
+            text = "N/A"
         self._text = text
         self.author = author
         self._upvoters = []
@@ -37,21 +37,25 @@ class BaseText:
     def eligible_vote(self, voter):
         assert type(voter) is User
         if voter == self.author:
-            raise Exception('You cannot vote your own %s'%type(self).__name__)
+            print('You cannot vote your own %s'%type(self).__name__)
+            return False
         if voter in self._upvoters:
-            raise Exception('%s already upvoted this %s'%(
+            print('%s already upvoted this %s'%(
                 voter.fullname(), type(self).__name__))
+            return False
         if voter in self._downvoters:
-            raise Exception('%s already downvoted this %s'%(
+            print('%s already downvoted this %s'%(
                 voter.fullname(), type(self).__name__))
+            return False
+        return True
 
     def upvote(self, voter):
-        self.eligible_vote(voter)
-        self._upvoters.append(voter)
+        if self.eligible_vote(voter):
+            self._upvoters.append(voter)
 
     def downvote(self, voter):
-        self.eligible_vote(voter)
-        self._downvoters.append(voter)
+        if self.eligible_vote(voter):
+            self._downvoters.append(voter)
 
     def get_vote_status(self):
         return len(self._upvoters) - len(self._downvoters)
@@ -95,7 +99,7 @@ class Question(BaseText):
     def __init__(self, author, title, text):
         assert type(title) is str
         if not title or title.isspace():
-            raise Exception('The question title is empty')
+            title = "N/A"
         super().__init__(author, text)
         self._title = title
         self._answers = []
@@ -104,8 +108,9 @@ class Question(BaseText):
         assert type(answer) is Answer
         answer._title = self._title
         if answer in self._answers:
-            raise Exception('The same answer exists')
-        self._answers.append(answer)
+            print('The same answer exists')
+        else:
+            self._answers.append(answer)
 
     def has_accepted_answer(self):
         for answer in self._answers:
