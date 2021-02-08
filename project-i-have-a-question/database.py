@@ -1,6 +1,6 @@
 import pickle
 
-from question import *
+from question import User, Answer, Question
 
 
 class Database(object):
@@ -9,12 +9,12 @@ class Database(object):
         self.questions = {} # type: Dict{str -> Question}
 
     def update_database(self, packet):
-        # packet is already validated 
+        # packet is already validated
         if packet["TYPE"] == "QUESTION":
             # TODO username instead of ip
             user = User("alias", packet["ACTOR"])
             new_question = Question(user, packet["TITLE"], packet["CONTENT"])
-            
+
             if not (packet["TITLE"] in self.questions):
                 self.questions[packet["TITLE"]] = new_question
 
