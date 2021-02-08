@@ -84,9 +84,31 @@ class TextFrame(tk.Frame):
         self.lbl_count = tk.Label(master=self, text=answer.get_vote_status())
         raise 'to be implemented'
 
-    def fn_upvote(event):
-        raise 'to be implemented'
+    def fn_upvote(self, event):
+        x, y = event.x, event.y
 
+        if x < 0 or x > self.w or y < 0 or y > self.w:
+            return False
+
+        if x < (self.w / 2):
+            return y > (2*x+self.w)
+        else:
+            return y > 2*(x-self.w/2)
+
+        return False
+
+    def fn_downvote(self, event):
+        x, y = event.x, (self.w - event.y)
+
+        if x < 0 or x > self.w or y < 0 or y > self.w:
+            return False
+
+        if x < (self.w / 2):
+            return y > (2*x+self.w)
+        else:
+            return y > 2*(x-self.w/2)
+
+        return False
 
 
 class Application(tk.Tk):
@@ -114,14 +136,9 @@ class Application(tk.Tk):
         self.comm_module.init()
         if not is_mod:
             lbl_wait.config(text='Waiting for host ...')
-            while True:
+            while self.comm_module.is_requesting:
                 self.comm_module.init_database_after_login()
-                if not self.comm_module.is_requesting:
-                    break
-                t = 2000    # ms
-                for i in range(0, t, 10):
-                    time.sleep(i / 1000)
-                    self.refresh()
+                time.sleep(2)
         lbl_wait.destroy()
 
         self.current_page = 'HomePage'
