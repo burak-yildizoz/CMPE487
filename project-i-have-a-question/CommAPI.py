@@ -155,10 +155,6 @@ class CommunicationModule(object):
                                 pickled_database = pickle.dumps(self.database)
                                 self._send_message("TCP", mes["ACTOR"], pickled_database)
 
-                            elif mes["TYPE"] == "PAST_DATA":
-                                with self.database_lock:
-                                    self.database.init_database(mes)
-
                     if quit_listener:
                         break
         
