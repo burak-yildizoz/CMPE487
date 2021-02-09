@@ -262,7 +262,7 @@ class Application(tk.Tk):
             self.comm_module.add_question(title, content)
 
     def answer_question(self, title, answer):
-        raise 'to be implemented'
+        self.comm_module.add_answer(title, answer.get_text())
 
     def get_questions(self):
         questions = sorted(list(self._questions.values()), reverse=True)
